@@ -2,7 +2,7 @@
 
 **RaktaScan — Frontend Application**
 
-> **Status:** Planning phase. Implementation will begin in Phase 2.
+> **Status:** Planning stage. Implementation is upcoming.
 
 ---
 
@@ -61,6 +61,6 @@ frontend/
 
 ## Setup Instructions
 
-*Setup instructions will be provided once the frontend is initialized in Phase 2.*
+*Setup instructions will be provided once the frontend is initialized.*
 
 > For the full project overview, see the [root README](../README.md).

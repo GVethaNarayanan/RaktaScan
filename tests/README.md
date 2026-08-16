@@ -2,7 +2,7 @@
 
 **RaktaScan — Testing**
 
-> **Status:** Planning phase. Test implementation will begin alongside development in Phase 2.
+> **Status:** Planning stage. Test implementation will begin alongside development.
 
 ---
 
@@ -37,6 +37,6 @@ tests/
 
 - **No tests have been implemented yet**
 - **No fake test results have been generated**
-- Test development will proceed alongside feature implementation in Phase 2
+- Test development will proceed alongside feature implementation
 
 > For the full project overview, see the [root README](../README.md).

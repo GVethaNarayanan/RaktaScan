@@ -2,7 +2,7 @@
 
 **RaktaScan — Backend API**
 
-> **Status:** Planning phase. Implementation will begin in Phase 2.
+> **Status:** Planning stage. Implementation is upcoming.
 
 ---
 

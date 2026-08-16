@@ -2,7 +2,7 @@
 
 **RaktaScan — Dataset**
 
-> **Status:** Planning phase. Dataset sourcing and curation will begin in Phase 2.
+> **Status:** Planning stage. Dataset sourcing and curation is upcoming.
 
 ---
 

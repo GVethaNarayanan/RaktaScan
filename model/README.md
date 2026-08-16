@@ -2,7 +2,7 @@
 
 **RaktaScan — ML Pipeline**
 
-> **Status:** Planning phase. Model development will begin in Phase 2.
+> **Status:** Planning stage. Model development is upcoming.
 
 ---
 
@@ -15,7 +15,7 @@
 
 ### Alternative: EfficientNet-B3
 - Higher-capacity architecture for comparison and potential server-side inference
-- Will be evaluated alongside MobileNetV3 during Phase 2
+- Will be evaluated alongside MobileNetV3
 
 ---
 
@@ -73,7 +73,6 @@ model/
 - **No model has been trained yet**
 - **No model weights exist in this repository**
 - **No accuracy or performance metrics are available at this stage**
-- Model development, training, and evaluation will commence in Phase 2
 - All evaluation results will be documented transparently when available
 
 > For the full project overview, see the [root README](../README.md).

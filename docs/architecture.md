@@ -2,7 +2,7 @@
 
 **RaktaScan — AI-Powered Non-Invasive Anemia Screening**
 
-> **Status:** This document describes the **planned architecture**. Implementation will begin in Phase 2.
+> **Status:** This document describes the **planned architecture**. Implementation is upcoming.
 
 ---
 
@@ -111,4 +111,4 @@ Confirmatory Test Recommendation
 | Screening History | 🔲 Planned |
 | FastAPI Backend | 🔲 Planned |
 
-> All components are in the planning stage. Implementation will begin in Phase 2.
+> All components are in the planning stage. Implementation is upcoming.

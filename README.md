@@ -2,17 +2,13 @@
   <h1 align="center">🩸 RaktaScan</h1>
   <h3 align="center">AI-Powered Non-Invasive Anemia Screening</h3>
   <p align="center">
-    <strong>Team Duo Tech</strong> · Omni_BioTech_2
-    <br />
-    <em>A screening/triage aid — not a diagnostic device</em>
+    <em>A camera-based screening aid — not a diagnostic device</em>
   </p>
 </p>
 
 ---
 
-## 🩸 Problem Statement
-
-**Omni_BioTech_2 — Non-Invasive Anemia Screening**
+## 🩸 Problem
 
 Anemia is a widespread health condition affecting millions globally. Conventional screening relies on blood-based testing methods such as Complete Blood Count (CBC) analysis, which require:
 
@@ -25,11 +21,11 @@ These requirements make mass screening difficult in **rural and resource-constra
 
 ---
 
-## 💡 Proposed Solution
+## 💡 Solution
 
 **RaktaScan** is a camera-based, AI-assisted screening platform that uses guided smartphone imaging of the **inner eyelid (palpebral conjunctiva)** to assess anemia risk.
 
-### Planned Pipeline
+### Pipeline
 
 ```
 Smartphone Camera
@@ -53,13 +49,11 @@ Confirmatory Test Recommendation
 
 > **Important:**
 > RaktaScan is a **screening/triage aid**, NOT a diagnostic device.
-> Moderate/High-risk screening results will recommend **confirmatory hemoglobin testing**.
+> Moderate/High-risk screening results recommend **confirmatory hemoglobin testing**.
 
 ---
 
-## ✨ Key Features
-
-All features listed below are **planned / in development** for future phases:
+## ✨ Features
 
 | Feature | Description | Status |
 |---|---|---|
@@ -77,7 +71,7 @@ All features listed below are **planned / in development** for future phases:
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Architecture
 
 ### Core Screening Pipeline
 
@@ -123,13 +117,12 @@ Confirmatory Test Recommendation
 | **Backend** | FastAPI (Python) |
 | **Database** | Supabase / PostgreSQL |
 | **Deployment** | Vercel (frontend), Render / Hugging Face Spaces (backend) |
-| **Version Control** | GitHub |
 
 ---
 
-## 🔬 AI/ML Development Plan
+## 🔬 AI/ML Plan
 
-Model development will commence after Phase 1 approval. The planned workflow is:
+The planned model development workflow:
 
 1. **Dataset Sourcing / Curation** — Identify and prepare appropriate conjunctiva image datasets
 2. **Data Preprocessing** — Standardize image dimensions, color spaces, and formats
@@ -141,7 +134,7 @@ Model development will commence after Phase 1 approval. The planned workflow is:
 8. **ONNX Conversion** — Export trained model to ONNX format
 9. **On-Device Inference Integration** — Deploy via ONNX Runtime Web
 
-### Planned Evaluation Metrics
+### Evaluation Metrics
 
 - Precision
 - Recall
@@ -149,13 +142,11 @@ Model development will commence after Phase 1 approval. The planned workflow is:
 - ROC-AUC
 - Confusion Matrix
 
-> **Note:** No accuracy or performance numbers are presented at this stage because the model has **not yet been trained or evaluated**.
+> **Note:** No accuracy or performance numbers are presented yet because the model has **not yet been trained or evaluated**.
 
 ---
 
 ## 📊 Current Status
-
-### `PHASE 1 — IDEA SUBMISSION`
 
 **Completed:**
 - ✅ Problem definition
@@ -164,12 +155,11 @@ Model development will commence after Phase 1 approval. The planned workflow is:
 - ✅ Feature planning
 - ✅ Technology selection
 - ✅ Implementation roadmap
-- ✅ GitHub project initialization
+- ✅ Repository setup
 
-**Not yet completed:**
+**In Progress / Upcoming:**
 - ⬜ Dataset preparation
-- ⬜ Model training
-- ⬜ Model evaluation
+- ⬜ Model training & evaluation
 - ⬜ Camera capture implementation
 - ⬜ ROI detection implementation
 - ⬜ Image Quality Gate implementation
@@ -181,13 +171,13 @@ Model development will commence after Phase 1 approval. The planned workflow is:
 
 ## 🚀 Roadmap
 
-### Phase 1 — Idea Submission *(current)*
+### Foundation *(current)*
 - ✅ Architecture design
 - ✅ Solution design
 - ✅ Technology planning
-- ✅ Repository initialization
+- ✅ Repository setup
 
-### Phase 2 — Progress Evaluation
+### Core Development
 - ⬜ Guided camera capture
 - ⬜ Image Quality Gate
 - ⬜ Conjunctiva ROI detection
@@ -196,7 +186,7 @@ Model development will commence after Phase 1 approval. The planned workflow is:
 - ⬜ Prediction flow
 - ⬜ Initial UI
 
-### Final Submission
+### Full Release
 - ⬜ Model refinement
 - ⬜ Community Health Worker mode
 - ⬜ Screening history
@@ -204,7 +194,7 @@ Model development will commence after Phase 1 approval. The planned workflow is:
 - ⬜ Offline inference
 - ⬜ Privacy improvements
 - ⬜ Deployment
-- ⬜ GitHub documentation
+- ⬜ Documentation
 - ⬜ Working prototype
 
 ---
@@ -226,29 +216,29 @@ Model development will commence after Phase 1 approval. The planned workflow is:
 ```
 RaktaScan/
 │
-├── README.md                  ← You are here
+├── README.md
 ├── LICENSE
 ├── .gitignore
 │
 ├── docs/
-│   ├── README.md              ← Documentation index
-│   ├── phase1-proposal.pdf    ← Phase 1 proposal (to be placed manually)
-│   └── architecture.md        ← System architecture details
+│   ├── README.md
+│   ├── phase1-proposal.pdf
+│   └── architecture.md
 │
 ├── frontend/
-│   └── README.md              ← Frontend planning documentation
+│   └── README.md
 │
 ├── backend/
-│   └── README.md              ← Backend planning documentation
+│   └── README.md
 │
 ├── model/
-│   └── README.md              ← ML pipeline documentation
+│   └── README.md
 │
 ├── data/
-│   └── README.md              ← Dataset planning documentation
+│   └── README.md
 │
 └── tests/
-    └── README.md              ← Testing plan documentation
+    └── README.md
 ```
 
 ---
@@ -257,13 +247,13 @@ RaktaScan/
 
 **Duo Tech**
 
-| Name | Role |
-|---|---|
-| **Vetha Narayanan G** | Team Member |
-| **Akshaya I** | Team Member |
+| Name |
+|---|
+| **Vetha Narayanan G** |
+| **Akshaya I** |
 
 ---
 
-<p align="center">
-  <em>Built for Omni_BioTech_2 — Non-Invasive Anemia Screening</em>
-</p>
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
