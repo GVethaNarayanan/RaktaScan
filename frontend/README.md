@@ -1,66 +1,50 @@
-# 🖥️ Frontend
+# React + TypeScript + Vite
 
-**RaktaScan — Frontend Application**
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-> **Status:** Planning stage. Implementation is upcoming.
+Currently, two official plugins are available:
 
----
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Planned Technology Stack
+## Expanding the ESLint configuration
 
-| Technology | Purpose |
-|---|---|
-| React.js | UI framework |
-| Vite | Build tool and dev server |
-| Tailwind CSS | Utility-first styling |
-| PWA | Offline-first capability |
-| ONNX Runtime Web | On-device model inference |
-| MediaPipe Face Landmarker | Conjunctiva ROI detection |
+If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
 
----
+- Configure the top-level `parserOptions` property like this:
 
-## Planned Module Structure
-
-```
-frontend/
-├── src/
-│   ├── components/
-│   │   ├── camera/           ← Camera capture interface
-│   │   ├── guided-capture/   ← Step-by-step capture instructions
-│   │   ├── quality-gate/     ← Image quality feedback UI
-│   │   ├── result/           ← Screening result display
-│   │   ├── dashboard/        ← CHW dashboard views
-│   │   ├── history/          ← Screening history interface
-│   │   └── common/           ← Shared/reusable components
-│   ├── hooks/                ← Custom React hooks
-│   ├── utils/                ← Utility functions
-│   ├── i18n/                 ← Multilingual support
-│   ├── services/             ← API and inference services
-│   └── assets/               ← Static assets
-├── public/
-│   └── models/               ← ONNX model files (at runtime)
-├── index.html
-├── vite.config.js
-├── tailwind.config.js
-└── package.json
+```js
+export default tseslint.config({
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
 ```
 
----
+- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
+- Optionally add `...tseslint.configs.stylisticTypeChecked`
+- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
 
-## Planned Features
+```js
+// eslint.config.js
+import react from 'eslint-plugin-react'
 
-- **Camera Capture** — Smartphone camera access with guided framing
-- **Guided Capture UI** — Visual instructions for imaging the palpebral conjunctiva
-- **Image Quality Feedback** — Real-time feedback on capture quality (blur, exposure, framing)
-- **Screening Result UI** — Clear display of Low / Moderate / High risk assessment
-- **CHW Dashboard** — Batch screening management for Community Health Workers
-- **Screening History** — Local-first record of past screenings
-- **Multilingual Interface** — Support for multiple languages
-
----
-
-## Setup Instructions
-
-*Setup instructions will be provided once the frontend is initialized.*
-
-> For the full project overview, see the [root README](../README.md).
+export default tseslint.config({
+  // Set the react version
+  settings: { react: { version: '18.3' } },
+  plugins: {
+    // Add the react plugin
+    react,
+  },
+  rules: {
+    // other rules...
+    // Enable its recommended rules
+    ...react.configs.recommended.rules,
+    ...react.configs['jsx-runtime'].rules,
+  },
+})
+```
