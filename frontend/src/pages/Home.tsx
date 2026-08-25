@@ -16,7 +16,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden bg-gray-950">
-      {/* Background Floating Ambient Light */}
+      {/* Ambient Floating Glow Lights */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-rakta-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse-glow" />
       <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyber-500/15 rounded-full blur-[140px] pointer-events-none animate-pulse-glow" />
 
@@ -32,13 +32,13 @@ export default function Home() {
             <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
               RaktaScan
               <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-rakta-500/20 text-rakta-300 border border-rakta-500/30">
-                Phase 2 AI
+                AI Detection
               </span>
             </h1>
           </div>
         </div>
 
-        {/* Quick Language Toggle */}
+        {/* Language Toggle */}
         <button
           onClick={toggleLanguage}
           className="floating-badge hover:border-white/30 text-xs font-bold text-gray-300 cursor-pointer transition-all active:scale-95"
@@ -47,34 +47,34 @@ export default function Home() {
         </button>
       </header>
 
-      {/* Main Hero Section */}
+      {/* Main Hero Container */}
       <main className="flex-1 px-6 pt-6 pb-12 max-w-xl mx-auto w-full space-y-6">
-        {/* Floating 3D Graphic Hero Card */}
+        {/* Hero Card */}
         <div className="relative glass-card border-white/15 p-8 text-center overflow-hidden perspective-1000">
           <div className="absolute top-0 right-0 w-32 h-32 bg-rakta-600/10 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Floating 3D Glowing Orb */}
+          {/* Floating 3D Glowing Blood/Health Icon */}
           <div className="relative mx-auto mb-6 w-24 h-24 rounded-3xl bg-gradient-to-br from-rakta-500 via-rose-600 to-rakta-800 p-0.5 shadow-2xl shadow-rakta-600/40 animate-float-slow">
             <div className="w-full h-full bg-gray-950 rounded-[22px] flex items-center justify-center">
-              <svg className="w-12 h-12 text-rakta-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14" />
+              <svg className="w-12 h-12 text-rakta-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
               </svg>
             </div>
           </div>
 
           <span className="floating-badge text-rakta-300 bg-rakta-500/15 border-rakta-500/30 mb-3">
-            ✨ Non-Invasive Hemoglobin Screening
+            🩸 Non-Invasive Anemia Screening
           </span>
 
           <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">
-            AI-Powered Anemia Screening
+            AI Anemia Screening
           </h2>
 
           <p className="text-sm text-gray-300 leading-relaxed max-w-md mx-auto mb-6">
-            Smartphone camera imaging of the palpebral conjunctiva with on-device MobileNetV3 inference.
+            Instant camera-based screening of the inner lower eyelid for early non-invasive anemia risk detection.
           </p>
 
-          {/* Primary CTA */}
+          {/* Start Screening Primary CTA */}
           <button
             id="btn-start-screening"
             onClick={() => navigate('/screening')}
@@ -84,31 +84,29 @@ export default function Home() {
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
               <circle cx="12" cy="13" r="4" />
             </svg>
-            START REAL SCREENING
+            START ANEMIA SCREENING
           </button>
         </div>
 
-        {/* Demo & CHW Mode Action Bar */}
+        {/* Demo Mode & CHW Mode Actions */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Interactive Demo Modal Trigger */}
           <button
             onClick={() => setIsDemoOpen(true)}
             className="btn-gradient-emerald py-3.5 text-sm rounded-2xl shadow-lg shadow-teal-500/20"
           >
-            💡 Try Demo Mode
+            💡 Try Demo Walkthrough
           </button>
 
-          {/* CHW Mode */}
           <button
             id="btn-chw-mode"
             onClick={() => navigate('/chw')}
             className="btn-gradient-secondary py-3.5 text-sm rounded-2xl"
           >
-            👥 CHW Mode
+            👥 CHW Health Worker Mode
           </button>
         </div>
 
-        {/* Saved Patient Records Shortcut */}
+        {/* Patient Database Shortcut */}
         <button
           id="btn-history"
           onClick={() => navigate('/history')}
@@ -119,35 +117,14 @@ export default function Home() {
               📁
             </div>
             <div className="text-left">
-              <h3 className="font-bold text-white text-sm">Patient Screening History</h3>
-              <p className="text-xs text-gray-400">View saved patient records & Hb metrics</p>
+              <h3 className="font-bold text-white text-sm">Patient Screening Database</h3>
+              <p className="text-xs text-gray-400">View saved patient records & hemoglobin estimates</p>
             </div>
           </div>
           <span className="text-gray-400 text-lg">→</span>
         </button>
 
-        {/* 3D Visual Cards: Pipeline Breakdown */}
-        <div className="space-y-3 pt-2">
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">
-            Core Screening Pipeline
-          </h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="glass-card p-4 hover:border-emerald-500/30 transition-all">
-              <div className="text-2xl mb-2">🎯</div>
-              <h4 className="font-bold text-white text-sm">Quality Gate</h4>
-              <p className="text-xs text-gray-400 mt-1">Calculates Laplacian variance blur & exposure check.</p>
-            </div>
-
-            <div className="glass-card p-4 hover:border-rakta-500/30 transition-all">
-              <div className="text-2xl mb-2">👁️</div>
-              <h4 className="font-bold text-white text-sm">MediaPipe ROI</h4>
-              <p className="text-xs text-gray-400 mt-1">468 mesh landmarks isolate inner lower eyelid.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Safety & Responsible AI Disclaimer */}
+        {/* Safety Disclaimer */}
         <div className="glass-card bg-amber-500/5 border-amber-500/20 p-4">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -156,13 +133,13 @@ export default function Home() {
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             <p className="text-xs text-amber-200/80 leading-relaxed">
-              RaktaScan is a screening aid and is NOT a diagnostic device. Moderate or High risk screening results recommend confirmatory hemoglobin blood testing at certified healthcare facilities.
+              RaktaScan is an anemia screening and triage aid, NOT a medical diagnostic device. Moderate or High risk screening results recommend confirmatory hemoglobin blood testing at certified healthcare facilities.
             </p>
           </div>
         </div>
       </main>
 
-      {/* Interactive Walkthrough Demo Modal */}
+      {/* Interactive Demo Modal */}
       <DemoModal
         isOpen={isDemoOpen}
         onClose={() => setIsDemoOpen(false)}
