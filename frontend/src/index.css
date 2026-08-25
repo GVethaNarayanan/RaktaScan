@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -11,75 +11,96 @@
     box-sizing: border-box;
   }
 
-  html {
-    scroll-behavior: smooth;
-  }
-
   body {
-    @apply bg-gray-950 text-white font-sans antialiased;
+    @apply bg-gray-950 text-white font-sans antialiased overflow-x-hidden;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(225, 29, 72, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(13, 148, 136, 0.15) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.8) 0px, transparent 100%);
+    background-attachment: fixed;
     min-height: 100dvh;
   }
 }
 
 @layer components {
-  .btn-primary {
-    @apply bg-rakta-600 hover:bg-rakta-700 text-white font-semibold py-3 px-6 rounded-xl 
-           transition-all duration-200 active:scale-95 shadow-lg shadow-rakta-600/25
-           disabled:opacity-50 disabled:cursor-not-allowed;
+  /* Ultra-Modern Glass Card */
+  .glass-card {
+    @apply bg-gray-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl
+           hover:border-white/20 transition-all duration-300;
   }
 
-  .btn-secondary {
-    @apply bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-xl 
-           border border-gray-700 transition-all duration-200 active:scale-95;
+  .glass-card-interactive {
+    @apply glass-card hover:-translate-y-1 hover:shadow-rakta-600/20 active:translate-y-0 cursor-pointer;
   }
 
-  .btn-success {
-    @apply bg-medical-600 hover:bg-medical-700 text-white font-semibold py-3 px-6 rounded-xl
-           transition-all duration-200 active:scale-95 shadow-lg shadow-medical-600/25;
+  /* 3D Floating elements */
+  .perspective-1000 {
+    perspective: 1000px;
   }
 
-  .card {
-    @apply bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-6;
+  .preserve-3d {
+    transform-style: preserve-3d;
   }
 
-  .risk-low {
-    @apply bg-emerald-500/10 border-emerald-500/30 text-emerald-400;
+  .floating-badge {
+    @apply inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold
+           bg-white/10 backdrop-blur-md border border-white/15 shadow-lg;
   }
 
-  .risk-moderate {
-    @apply bg-amber-500/10 border-amber-500/30 text-amber-400;
+  /* Glowing Neon Buttons */
+  .btn-gradient-primary {
+    @apply relative overflow-hidden bg-gradient-to-r from-rakta-600 via-rose-600 to-rakta-700
+           hover:from-rakta-500 hover:to-rose-600 text-white font-bold py-4 px-8 rounded-2xl
+           shadow-lg shadow-rakta-600/40 hover:shadow-rakta-500/60 transition-all duration-300
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3;
   }
 
-  .risk-high {
-    @apply bg-red-500/10 border-red-500/30 text-red-400;
+  .btn-gradient-secondary {
+    @apply bg-gray-800/80 hover:bg-gray-800 text-white font-semibold py-3.5 px-6 rounded-2xl
+           border border-white/10 hover:border-white/20 backdrop-blur-md transition-all duration-200
+           active:scale-95 flex items-center justify-center gap-2.5;
   }
 
-  .guide-overlay {
-    @apply absolute inset-0 flex items-center justify-center pointer-events-none;
+  .btn-gradient-emerald {
+    @apply bg-gradient-to-r from-emerald-600 via-teal-600 to-cyber-600 hover:from-emerald-500 hover:to-teal-500
+           text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-emerald-600/30 hover:shadow-emerald-500/50
+           transition-all duration-300 active:scale-95 flex items-center justify-center gap-3;
   }
 
-  .quality-badge {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium;
+  /* Live Camera Target Alignment Indicator */
+  .reticle-perfect {
+    @apply border-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.8)] scale-105;
+  }
+
+  .reticle-aligning {
+    @apply border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.5)];
+  }
+
+  /* Risk Badges */
+  .risk-badge-low {
+    @apply bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 shadow-lg shadow-emerald-500/10;
+  }
+  
+  .risk-badge-moderate {
+    @apply bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-lg shadow-amber-500/10;
+  }
+
+  .risk-badge-high {
+    @apply bg-rose-500/15 border border-rose-500/40 text-rose-300 shadow-lg shadow-rose-500/10;
   }
 }
 
-/* Camera viewfinder animation */
-@keyframes viewfinder-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
 }
-
-.viewfinder-guide {
-  animation: viewfinder-pulse 2s ease-in-out infinite;
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
 }
-
-/* Scanning animation for ROI detection */
-@keyframes scan-sweep {
-  0% { top: 0; }
-  50% { top: calc(100% - 2px); }
-  100% { top: 0; }
+::-webkit-scrollbar-thumb {
+  background: rgba(225, 29, 72, 0.3);
+  border-radius: 9999px;
 }
-
-.scan-line {
-  animation: scan-sweep 2s ease-in-out infinite;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(225, 29, 72, 0.6);
 }

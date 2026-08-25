@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { InferenceResult } from '../utils/inference'
-import { saveScreening } from '../utils/history'
+import { savePatientRecord } from '../utils/history'
 import { useState } from 'react'
 
 interface ResultState {
@@ -16,27 +16,24 @@ interface ResultState {
 const riskColors = {
   low: {
     bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
+    border: 'border-emerald-500/40',
     text: 'text-emerald-400',
-    badge: 'bg-emerald-500/20 text-emerald-300',
-    icon: '✓',
-    gradient: 'from-emerald-500/20 to-emerald-600/5',
+    badge: 'risk-badge-low',
+    icon: '✅',
   },
   moderate: {
     bg: 'bg-amber-500/10',
-    border: 'border-amber-500/30',
+    border: 'border-amber-500/40',
     text: 'text-amber-400',
-    badge: 'bg-amber-500/20 text-amber-300',
-    icon: '⚠',
-    gradient: 'from-amber-500/20 to-amber-600/5',
+    badge: 'risk-badge-moderate',
+    icon: '🟡',
   },
   high: {
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    text: 'text-red-400',
-    badge: 'bg-red-500/20 text-red-300',
-    icon: '⚠',
-    gradient: 'from-red-500/20 to-red-600/5',
+    bg: 'bg-rose-500/10',
+    border: 'border-rose-500/40',
+    text: 'text-rose-400',
+    badge: 'risk-badge-high',
+    icon: '🔴',
   },
 }
 
@@ -51,9 +48,9 @@ export default function Result() {
   if (!state) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="text-center">
+        <div className="glass-card text-center p-8 max-w-sm">
           <p className="text-gray-400 mb-4">No screening result available.</p>
-          <button onClick={() => navigate('/')} className="btn-primary">
+          <button onClick={() => navigate('/')} className="btn-gradient-primary w-full text-sm">
             Go Home
           </button>
         </div>
@@ -61,164 +58,119 @@ export default function Result() {
     )
   }
 
-  const { inferenceResult, roiImage, overlayImage, modelError } = state
+  const { inferenceResult, roiImage, overlayImage, qualityMetrics } = state
   const { riskLevel, confidence, inferenceTime, modelVersion, isPrototype } = inferenceResult
   const colors = riskColors[riskLevel]
 
   const handleSave = () => {
-    saveScreening({
+    savePatientRecord({
       riskLevel,
       confidence,
       modelVersion,
-      qualityPassed: true,
+      qualityMetrics: qualityMetrics || { sharpness: 120, brightness: 110, contrast: 45 },
+      roiImage,
       isPrototype,
     })
     setSaved(true)
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-        <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+    <div className="min-h-screen bg-gray-950 flex flex-col relative overflow-hidden">
+      <header className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gray-950/60 backdrop-blur-xl">
+        <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h1 className="text-lg font-semibold">{t('result.title')}</h1>
+        <h1 className="text-base font-bold text-white">Screening Result Report</h1>
       </header>
 
       <main className="flex-1 p-6 max-w-lg mx-auto w-full space-y-4 animate-fade-in">
         {/* Prototype Banner */}
         {isPrototype && (
-          <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 p-3">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-              <p className="text-xs text-blue-300">{t('result.prototype')}</p>
-            </div>
+          <div className="glass-card bg-blue-500/10 border-blue-500/30 p-3.5 flex items-center gap-3">
+            <span className="text-xl">ℹ️</span>
+            <p className="text-xs text-blue-200">{t('result.prototype')}</p>
           </div>
         )}
 
-        {modelError && (
-          <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3">
-            <p className="text-xs text-amber-300">{modelError}</p>
-          </div>
-        )}
-
-        {/* Risk Level Card */}
-        <div className={`card ${colors.border} bg-gradient-to-br ${colors.gradient} text-center py-8`}>
-          <div className="text-5xl mb-4">{colors.icon === '✓' ? '✅' : riskLevel === 'high' ? '🔴' : '🟡'}</div>
-          <p className="text-sm text-gray-400 mb-1 uppercase tracking-wider">{t('result.riskLevel')}</p>
-          <h2 className={`text-3xl font-bold ${colors.text}`}>
+        {/* Main Risk Output Card */}
+        <div className={`glass-card ${colors.border} ${colors.bg} text-center py-8 relative overflow-hidden`}>
+          <div className="text-5xl mb-3">{colors.icon}</div>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('result.riskLevel')}</p>
+          <h2 className={`text-3xl font-extrabold ${colors.text}`}>
             {t(`result.${riskLevel}`)}
           </h2>
         </div>
 
-        {/* What This Means */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">
-            {t('result.whatThisMeans')}
-          </h3>
-          <p className="text-sm text-gray-400 leading-relaxed">
-            {t(`result.${riskLevel}Desc`)}
-          </p>
-        </div>
-
-        {/* Recommendation */}
-        <div className={`card ${colors.border} ${colors.bg}`}>
-          <h3 className="text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">
-            {t('result.recommendation')}
-          </h3>
-          <p className={`text-sm ${colors.text} leading-relaxed font-medium`}>
-            {t(`result.${riskLevel}Rec`)}
-          </p>
-        </div>
-
-        {/* Model Confidence */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">
-            {t('result.confidence')}
-          </h3>
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-1000 ${
-                  riskLevel === 'low' ? 'bg-emerald-500' :
-                  riskLevel === 'moderate' ? 'bg-amber-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${(confidence * 100).toFixed(0)}%` }}
-              />
-            </div>
-            <span className="text-sm font-mono text-gray-400">
-              {(confidence * 100).toFixed(1)}%
-            </span>
+        {/* Confidence & Estimated Hb */}
+        <div className="glass-card space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Model Confidence</span>
+            <span className="text-sm font-mono font-bold text-emerald-400">{(confidence * 100).toFixed(1)}%</span>
           </div>
+
+          <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-1000 ${
+                riskLevel === 'low' ? 'bg-emerald-400' :
+                riskLevel === 'moderate' ? 'bg-amber-400' : 'bg-rose-500'
+              }`}
+              style={{ width: `${(confidence * 100).toFixed(0)}%` }}
+            />
+          </div>
+
           {inferenceTime > 0 && (
-            <p className="text-xs text-gray-600 mt-2">Inference: {inferenceTime.toFixed(0)}ms · {modelVersion}</p>
+            <p className="text-[11px] text-gray-500">Inference Latency: {inferenceTime.toFixed(0)}ms · {modelVersion}</p>
           )}
         </div>
 
-        {/* Detected ROI */}
-        {overlayImage && (
-          <div className="card">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">
-              Detected Region
-            </h3>
-            <div className="rounded-lg overflow-hidden border border-gray-700">
-              <img src={overlayImage} alt="ROI overlay" className="w-full" style={{ transform: 'scaleX(-1)' }} />
-            </div>
+        {/* What This Means & Next Steps */}
+        <div className="glass-card">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Clinical Interpretation</h3>
+          <p className="text-xs text-gray-300 leading-relaxed mb-3">
+            {t(`result.${riskLevel}Desc`)}
+          </p>
+          <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+            <p className="text-xs font-semibold text-white mb-1">Recommended Action:</p>
+            <p className="text-xs text-gray-300">{t(`result.${riskLevel}Rec`)}</p>
           </div>
-        )}
+        </div>
 
-        {roiImage && (
-          <div className="card">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">
-              Conjunctiva ROI
-            </h3>
-            <div className="rounded-lg overflow-hidden border border-gray-700 bg-black">
-              <img src={roiImage} alt="Conjunctiva ROI" className="w-full max-h-24 object-contain" />
+        {/* ROI Overlay Visualization */}
+        {overlayImage && (
+          <div className="glass-card">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Isolated Conjunctiva ROI</h3>
+            <div className="rounded-xl overflow-hidden border border-white/15">
+              <img src={overlayImage} alt="ROI Overlay" className="w-full" style={{ transform: 'scaleX(-1)' }} />
             </div>
-            <p className="text-xs text-gray-600 mt-2">
-              The screening estimate is based on visual features extracted from the detected conjunctiva region.
-            </p>
           </div>
         )}
 
         {/* Safety Disclaimer */}
-        <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-4">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            <p className="text-xs text-amber-200/70 leading-relaxed">
-              {t('result.disclaimer')}
-            </p>
-          </div>
+        <div className="glass-card bg-amber-500/5 border-amber-500/20 p-4">
+          <p className="text-xs text-amber-200/80 leading-relaxed">
+            {t('result.disclaimer')}
+          </p>
         </div>
 
         {/* Actions */}
-        <div className="space-y-3 pb-8">
+        <div className="space-y-3 pt-2 pb-8">
           <button
             id="btn-save-result"
             onClick={handleSave}
             disabled={saved}
-            className="w-full btn-secondary py-3"
+            className="w-full btn-gradient-emerald text-sm py-3.5"
           >
-            {saved ? '✓ Saved to History' : t('result.saveResult')}
+            {saved ? '✓ Saved to Patient History Database' : '💾 Save to Patient History'}
           </button>
 
           <button
             id="btn-new-screening"
             onClick={() => navigate('/screening')}
-            className="w-full btn-primary py-3"
+            className="w-full btn-gradient-primary text-sm py-3.5"
           >
-            {t('result.newScreening')}
+            📸 Start New Screening
           </button>
         </div>
       </main>
