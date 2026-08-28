@@ -262,8 +262,13 @@ export default function AgenticLab() {
           </div>
 
           {toolOutput && (
-            <div className="bg-black/90 p-4 rounded-2xl border border-white/10 font-mono text-xs text-emerald-300 overflow-x-auto">
-              <pre>{JSON.stringify(toolOutput, null, 2)}</pre>
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 space-y-2">
+              <p className="font-bold flex items-center gap-2">
+                <span>✅</span> Executed Tool: <span className="font-mono">{toolOutput.tool || selectedTool}</span>
+              </p>
+              <div className="bg-black/60 p-3 rounded-xl border border-white/10 text-[11px] font-mono leading-relaxed">
+                {JSON.stringify(toolOutput.output || toolOutput, null, 2)}
+              </div>
             </div>
           )}
         </div>
