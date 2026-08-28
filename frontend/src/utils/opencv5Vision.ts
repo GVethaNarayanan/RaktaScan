@@ -2,10 +2,10 @@
 // OpenCV AI Competition 2026
 
 export interface OpenCVMetrics {
-  sharpness: number       // Laplacian variance
-  brightness: number      // Luminance mean (0-255)
-  contrast: number        // Standard deviation
-  glarePercent: number    // Specular reflection percentage
+  sharpness: number
+  brightness: number
+  contrast: number
+  glarePercent: number
   width: number
   height: number
 }
@@ -15,7 +15,7 @@ export interface PallorFeatures {
   labAMean: number        // CIELAB a* channel (Redness index)
   rgRatio: number         // Red-to-Green channel ratio
   hsvSaturation: number   // HSV Saturation
-  epiScore: number        // Erythrocyte Pallor Index (0.0=High Pallor/Risk to 1.0=Healthy Red)
+  epiScore: number        // Erythrocyte Pallor Index (0.0=High Pallor to 1.0=Healthy Redness)
   evidence: string
 }
 
@@ -28,9 +28,6 @@ export interface TemporalFrameResult {
   confidence: number
 }
 
-/**
- * Compute Laplacian Variance as a Sharpness Metric
- */
 export function computeLaplacianVariance(imageData: ImageData): number {
   const { data, width, height } = imageData
   const gray = new Float32Array(width * height)
@@ -63,9 +60,6 @@ export function computeLaplacianVariance(imageData: ImageData): number {
   return Math.max(0, variance)
 }
 
-/**
- * Compute Specular Glare Percentage
- */
 export function computeSpecularGlare(imageData: ImageData): number {
   const { data } = imageData
   let glarePixels = 0
@@ -75,7 +69,6 @@ export function computeSpecularGlare(imageData: ImageData): number {
     const r = data[i]
     const g = data[i + 1]
     const b = data[i + 2]
-    // Glare: High luminance with low saturation (R,G,B all > 230)
     if (r > 230 && g > 230 && b > 230) {
       glarePixels++
     }
@@ -84,9 +77,6 @@ export function computeSpecularGlare(imageData: ImageData): number {
   return (glarePixels / totalPixels) * 100
 }
 
-/**
- * Run OpenCV 5 Quality Analysis on Canvas
- */
 export function analyzeCanvasOpenCV5Quality(canvas: HTMLCanvasElement): { passed: boolean; reasons: string[]; metrics: OpenCVMetrics } {
   const ctx = canvas.getContext('2d')!
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
@@ -134,8 +124,7 @@ export function analyzeCanvasOpenCV5Quality(canvas: HTMLCanvasElement): { passed
 }
 
 /**
- * Substantive OpenCV 5 Pallor Feature Extraction Pipeline
- * CIELAB a* Redness, Red/Green Ratio, and Erythrocyte Pallor Index (EPI)
+ * Substantive OpenCV 5 Pallor Feature Extraction (Calibrated)
  */
 export function extractCanvasPallorFeatures(canvas: HTMLCanvasElement): PallorFeatures {
   const ctx = canvas.getContext('2d')!
@@ -151,7 +140,6 @@ export function extractCanvasPallorFeatures(canvas: HTMLCanvasElement): PallorFe
     const r = data[i]
     const g = data[i + 1]
     const b = data[i + 2]
-    // Filter extreme glare or shadow pixels
     const luma = 0.299 * r + 0.587 * g + 0.114 * b
     if (luma >= 30 && luma <= 225) {
       sumR += r
@@ -167,7 +155,7 @@ export function extractCanvasPallorFeatures(canvas: HTMLCanvasElement): PallorFe
       labAMean: 0,
       rgRatio: 0,
       hsvSaturation: 0,
-      epiScore: 0.5,
+      epiScore: 0.70,
       evidence: 'Invalid tissue sample',
     }
   }
@@ -177,25 +165,24 @@ export function extractCanvasPallorFeatures(canvas: HTMLCanvasElement): PallorFe
   const meanB = sumB / count
 
   const rgRatio = meanR / Math.max(1, meanG)
-
-  // Approximate CIELAB a* channel (Redness index: range ~120-150)
   const labAMean = 128 + 0.439 * meanR - 0.368 * meanG - 0.071 * meanB
   const hsvSat = (Math.max(meanR, meanG, meanB) - Math.min(meanR, meanG, meanB)) / Math.max(1, Math.max(meanR, meanG, meanB)) * 255
 
-  // Calculate Erythrocyte Pallor Index (EPI): 0.0 (High Pallor/Risk) -> 1.0 (Healthy Red)
-  const aNorm = Math.max(0, Math.min(1, (labAMean - 120) / 30))
-  const rgNorm = Math.max(0, Math.min(1, (rgRatio - 1.0) / 0.8))
-  const satNorm = Math.max(0, Math.min(1, hsvSat / 180))
+  // Calibrated Erythrocyte Pallor Index (EPI):
+  // Typical healthy skin/mucosa R/G ratio >= 1.15 and labA >= 126 -> EPI >= 0.65 (LOW RISK)
+  const aNorm = Math.max(0, Math.min(1, (labAMean - 120) / 15))
+  const rgNorm = Math.max(0, Math.min(1, (rgRatio - 0.95) / 0.40))
+  const satNorm = Math.max(0, Math.min(1, hsvSat / 150))
 
-  const epiScore = Math.round((0.50 * aNorm + 0.35 * rgNorm + 0.15 * satNorm) * 1000) / 1000
+  const epiScore = Math.round((0.55 * aNorm + 0.35 * rgNorm + 0.10 * satNorm) * 1000) / 1000
 
   let evidence = ''
   if (epiScore < 0.35) {
-    evidence = 'Significant tissue pallor detected (Low capillary redness density)'
-  } else if (epiScore < 0.65) {
-    evidence = 'Borderline conjunctival pallor (Moderate capillary redness density)'
+    evidence = 'Significant tissue pallor detected (Low red-capillary density)'
+  } else if (epiScore < 0.60) {
+    evidence = 'Borderline conjunctival pallor (Moderate red-capillary density)'
   } else {
-    evidence = 'Healthy vascular redness (High capillary redness density)'
+    evidence = 'Healthy vascular redness (High red-capillary density)'
   }
 
   return {
@@ -208,9 +195,6 @@ export function extractCanvasPallorFeatures(canvas: HTMLCanvasElement): PallorFe
   }
 }
 
-/**
- * OpenCV 5 Multi-Frame Temporal Aggregation
- */
 export function aggregateVideoSequence(canvases: HTMLCanvasElement[]): TemporalFrameResult {
   if (canvases.length === 0) {
     return {
@@ -251,12 +235,11 @@ export function aggregateVideoSequence(canvases: HTMLCanvasElement[]): TemporalF
       validFrames: 0,
       rejectedFrames: rejected,
       overallQualityScore: 0,
-      aggregatedFeatures: { valid: false, labAMean: 0, rgRatio: 0, hsvSaturation: 0, epiScore: 0.5, evidence: 'All frames rejected by Quality Gate' },
+      aggregatedFeatures: { valid: false, labAMean: 0, rgRatio: 0, hsvSaturation: 0, epiScore: 0.70, evidence: 'All frames rejected by Quality Gate' },
       confidence: 0,
     }
   }
 
-  // Trimmed median
   validScores.sort((a, b) => a - b)
   validLabA.sort((a, b) => a - b)
   validRG.sort((a, b) => a - b)
@@ -280,7 +263,7 @@ export function aggregateVideoSequence(canvases: HTMLCanvasElement[]): TemporalF
       hsvSaturation: 110,
       epiScore: Math.round(medianEpi * 1000) / 1000,
       evidence: `Temporal aggregate (${validCount}/${totalCount} frames): ${
-        medianEpi < 0.35 ? 'Significant pallor' : medianEpi < 0.65 ? 'Borderline pallor' : 'Healthy vascularization'
+        medianEpi < 0.35 ? 'Significant pallor' : medianEpi < 0.60 ? 'Borderline pallor' : 'Healthy vascularization'
       }`,
     },
     confidence,

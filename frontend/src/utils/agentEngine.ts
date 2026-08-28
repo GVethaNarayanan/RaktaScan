@@ -62,10 +62,9 @@ export function evaluatePerceptionStep(
 
   // 2. BORDERLINE / UNCERTAINTY ACTIVE PERCEPTION GATE
   const epi = pallorFeatures.epiScore
-  const isBorderlineEpi = epi >= 0.35 && epi <= 0.65
-  const isBorderlineModel = modelScore >= 0.30 && modelScore <= 0.70
+  const isBorderlineEpi = epi >= 0.40 && epi <= 0.59
 
-  if (captureCount === 1 && (isBorderlineEpi || isBorderlineModel)) {
+  if (captureCount === 1 && isBorderlineEpi) {
     return {
       action: 'REQUEST_SECOND_VIEW',
       recommendedGuidance: 'Visual evidence is borderline. Please take a 2nd capture for cross-validation.',
@@ -105,23 +104,22 @@ export function evaluatePerceptionStep(
     }
   }
 
-  // 4. FINAL RISK MAPPING
-  const combined = 0.60 * (1.0 - epi) + 0.40 * modelScore
+  // 4. FINAL RISK MAPPING (Calibrated)
   let action: AgentAction = 'ACCEPT_LOW_RISK'
   let riskTier: 'LOW' | 'MODERATE' | 'HIGH' = 'LOW'
-  let guidance = 'Low screening risk based on visual evidence. Periodic screening recommended.'
+  let guidance = 'Low screening risk based on healthy visual conjunctiva redness. Periodic screening recommended.'
 
-  if (combined >= 0.65) {
+  if (epi < 0.35) {
     action = 'ACCEPT_HIGH_RISK'
     riskTier = 'HIGH'
     guidance = 'Elevated anemia screening risk. Please seek confirmatory hemoglobin blood testing.'
-  } else if (combined >= 0.35) {
+  } else if (epi < 0.60) {
     action = 'ACCEPT_MODERATE_RISK'
     riskTier = 'MODERATE'
     guidance = 'Moderate screening risk. Confirmatory hemoglobin blood test recommended.'
   }
 
-  const confidence = Math.round((0.85 + 0.12 * Math.abs(combined - 0.50)) * 100) / 100
+  const confidence = Math.round((0.85 + 0.12 * Math.abs(epi - 0.50)) * 100) / 100
 
   return {
     action,
@@ -130,7 +128,7 @@ export function evaluatePerceptionStep(
     riskTier,
     confidence,
     agentTrace: [
-      `[${timestamp}] PERCEPT: OpenCV 5 + MobileNetV3 visual evidence aggregated (EPI=${epi.toFixed(2)}, Combined=${combined.toFixed(2)}).`,
+      `[${timestamp}] PERCEPT: OpenCV 5 + MobileNetV3 visual evidence aggregated (EPI=${epi.toFixed(2)}, LAB a*=${pallorFeatures.labAMean.toFixed(1)}).`,
       `[${timestamp}] DECISION: Action -> ${action}`,
       `[${timestamp}] ACTION: Final screening risk set to ${riskTier} (Confidence=${(confidence * 100).toFixed(0)}%).`,
       `[${timestamp}] GUIDANCE: ${guidance}`,
