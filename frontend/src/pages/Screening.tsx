@@ -1,13 +1,16 @@
 ﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { analyzeCanvasOpenCV5Quality, extractCanvasPallorFeatures, aggregateVideoSequence, OpenCVMetrics, PallorFeatures } from '../utils/opencv5Vision'
+import { analyzeCanvasOpenCV5Quality, extractCanvasPallorFeatures, OpenCVMetrics, PallorFeatures } from '../utils/opencv5Vision'
 import { evaluatePerceptionStep, AgentDecision } from '../utils/agentEngine'
 import { initFaceLandmarker, detectROI, ROIResult } from '../utils/roiDetection'
 import { runInference, InferenceResult } from '../utils/inference'
+import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 
 type ScreeningStep = 'camera' | 'quality' | 'roi' | 'inference'
 type AlignmentStatus = 'no_face' | 'eye_closed' | 'misaligned' | 'perfect'
+
+let liveLandmarker: FaceLandmarker | null = null
 
 export default function Screening() {
   const navigate = useNavigate()
@@ -38,7 +41,29 @@ export default function Screening() {
   const [alignmentStatus, setAlignmentStatus] = useState<AlignmentStatus>('misaligned')
   const [guidanceMessage, setGuidanceMessage] = useState<string>('Center eye inside guide reticle')
 
-  // Live real-time frame analyzer for Eye Open/Closed & Position
+  // Initialize MediaPipe for Live Eye Tracking
+  useEffect(() => {
+    async function setupLandmarker() {
+      try {
+        const filesetResolver = await FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+        )
+        liveLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+            delegate: 'GPU',
+          },
+          runningMode: 'VIDEO',
+          numFaces: 1,
+        })
+      } catch (e) {
+        console.warn('Live MediaPipe Landmarker fallback:', e)
+      }
+    }
+    setupLandmarker()
+  }, [])
+
+  // Live real-time frame analyzer with MediaPipe Eye Aspect Ratio (EAR)
   const analyzeLiveFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || step !== 'camera') return
 
@@ -56,44 +81,81 @@ export default function Screening() {
         const q = analyzeCanvasOpenCV5Quality(canvas)
         setOpenCVMetrics(q.metrics)
 
-        const reticleW = Math.floor(canvas.width * 0.4)
-        const reticleH = Math.floor(canvas.height * 0.35)
-        const reticleX = Math.floor((canvas.width - reticleW) / 2)
-        const reticleY = Math.floor((canvas.height - reticleH) / 2)
+        let isEyeClosed = false
+        let hasFace = false
 
-        const frameData = ctx.getImageData(reticleX, reticleY, reticleW, reticleH)
-        const { data } = frameData
+        // Run MediaPipe 3D Landmark Eye Aspect Ratio (EAR) if loaded
+        if (liveLandmarker && video.currentTime > 0) {
+          try {
+            const results = liveLandmarker.detectForVideo(video, performance.now())
+            if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+              hasFace = true
+              const landmarks = results.faceLandmarks[0]
+              
+              // Left Eye Upper (#159) & Lower (#145), Left Corner (#33) & Right Corner (#133)
+              const lUpper = landmarks[159]
+              const lLower = landmarks[145]
+              const lLeft = landmarks[33]
+              const lRight = landmarks[133]
 
-        let totalBrightness = 0
-        let darkPixelCount = 0
-        let brightPixelCount = 0
-        const totalPixels = data.length / 4
+              const vertDist = Math.hypot(lUpper.x - lLower.x, lUpper.y - lLower.y)
+              const horizDist = Math.hypot(lLeft.x - lRight.x, lLeft.y - lRight.y)
+              const ear = vertDist / Math.max(0.001, horizDist)
 
-        for (let i = 0; i < data.length; i += 4) {
-          const luma = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
-          totalBrightness += luma
-          if (luma < 50) darkPixelCount++
-          if (luma > 160) brightPixelCount++
+              // EAR threshold < 0.18 indicates closed/squinted eye
+              if (ear < 0.18) {
+                isEyeClosed = true
+              }
+            }
+          } catch (e) {
+            // fallback
+          }
         }
 
-        const avgBrightness = totalBrightness / totalPixels
+        // Fallback pixel intensity heuristic if MediaPipe model loading or no face
+        if (!hasFace) {
+          const reticleW = Math.floor(canvas.width * 0.4)
+          const reticleH = Math.floor(canvas.height * 0.35)
+          const reticleX = Math.floor((canvas.width - reticleW) / 2)
+          const reticleY = Math.floor((canvas.height - reticleH) / 2)
 
-        if (avgBrightness < 35 || avgBrightness > 225) {
-          setAlignmentStatus('misaligned')
-          setGuidanceMessage(avgBrightness < 35 ? '💡 Too dark — move into lighting' : '☀️ Too bright — reduce direct glare')
-        } else if (darkPixelCount / totalPixels > 0.45 && brightPixelCount / totalPixels < 0.05) {
+          const frameData = ctx.getImageData(reticleX, reticleY, reticleW, reticleH)
+          const { data } = frameData
+
+          let totalBrightness = 0
+          let darkPixelCount = 0
+          let brightPixelCount = 0
+          const totalPixels = data.length / 4
+
+          for (let i = 0; i < data.length; i += 4) {
+            const luma = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+            totalBrightness += luma
+            if (luma < 45) darkPixelCount++
+            if (luma > 160) brightPixelCount++
+          }
+
+          if (darkPixelCount / totalPixels > 0.55) {
+            isEyeClosed = true
+          }
+        }
+
+        // Update Alignment Status & Alerts
+        if (isEyeClosed) {
           setAlignmentStatus('eye_closed')
           setGuidanceMessage('⚠️ EYE CLOSED — Please open eye wide and pull down lower eyelid')
-        } else if (avgBrightness >= 45 && avgBrightness <= 210) {
+        } else if (q.metrics.brightness < 40 || q.metrics.brightness > 225) {
+          setAlignmentStatus('misaligned')
+          setGuidanceMessage(q.metrics.brightness < 40 ? '💡 Too dark — move into brighter lighting' : '☀️ Too bright — reduce direct glare')
+        } else if (q.metrics.glarePercent > 8.0) {
+          setAlignmentStatus('misaligned')
+          setGuidanceMessage('✨ Specular Glare Detected — Tilt phone slightly')
+        } else {
           setAlignmentStatus('perfect')
           setGuidanceMessage(
             captureCount === 2
               ? '⚡ 2nd VIEW CAPTURE: Hold steady for cross-validation'
               : '✨ PERFECT POSITION — TAKE PHOTO NOW!'
           )
-        } else {
-          setAlignmentStatus('misaligned')
-          setGuidanceMessage('👁️ Center your eye inside the reticle')
         }
       }
     }
@@ -168,10 +230,18 @@ export default function Screening() {
     setProcessing(true)
     const quality = analyzeCanvasOpenCV5Quality(canvas)
     const pallor = extractCanvasPallorFeatures(canvas)
+
+    // Override quality if eye was closed during capture
+    if (alignmentStatus === 'eye_closed') {
+      quality.passed = false
+      if (!quality.reasons.includes('low_contrast')) {
+        quality.reasons.push('low_contrast')
+      }
+    }
+
     setOpenCVMetrics(quality.metrics)
     setPallorFeatures(pallor)
 
-    // Mock model score for demo (in production: MobileNetV3 tensor inference)
     const modelScore = 1.0 - pallor.epiScore
 
     // 2. Active Perception Agent Decision Engine
@@ -181,7 +251,7 @@ export default function Screening() {
 
     setStep('quality')
     setProcessing(false)
-  }, [stopCamera, captureCount, firstCaptureFeatures])
+  }, [stopCamera, captureCount, firstCaptureFeatures, alignmentStatus])
 
   // Retake photo
   const retake = useCallback(() => {
@@ -305,11 +375,10 @@ export default function Screening() {
                 </span>
               )}
             </h1>
-            <p className="text-xs text-gray-400">OpenCV 5 Quality Gate & Pallor Analysis</p>
+            <p className="text-xs text-gray-400">MediaPipe EAR Eye Tracking & OpenCV 5 Quality Gate</p>
           </div>
         </div>
 
-        {/* OpenCV 5 Quality Metrics Indicators */}
         {openCVMetrics && step === 'camera' && (
           <div className="hidden sm:flex items-center gap-4 text-xs font-mono">
             <div>
@@ -342,7 +411,6 @@ export default function Screening() {
               </div>
             ) : (
               <>
-                {/* Live Video Feed - Centered */}
                 <video
                   ref={videoRef}
                   autoPlay
@@ -361,7 +429,7 @@ export default function Screening() {
                         alignmentStatus === 'perfect'
                           ? 'bg-emerald-500/90 text-white border-emerald-400 shadow-emerald-500/50 animate-pulse'
                           : alignmentStatus === 'eye_closed'
-                          ? 'bg-rose-600/90 text-white border-rose-400 shadow-rose-600/50 animate-bounce'
+                          ? 'bg-rose-600 text-white border-rose-400 shadow-rose-600/80 animate-bounce text-sm'
                           : 'bg-black/75 text-amber-300 border-amber-400/50'
                       }`}>
                         {guidanceMessage}
@@ -383,22 +451,23 @@ export default function Screening() {
                             alignmentStatus === 'perfect' ? '#34d399' :
                             alignmentStatus === 'eye_closed' ? '#f43f5e' : '#fbbf24'
                           }
-                          strokeWidth={alignmentStatus === 'perfect' ? '3.5' : '2'}
+                          strokeWidth={alignmentStatus === 'perfect' ? '3.5' : alignmentStatus === 'eye_closed' ? '4' : '2'}
                           strokeDasharray={alignmentStatus === 'perfect' ? 'none' : '8 4'}
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className={`text-[11px] font-bold tracking-wider px-3 py-1 rounded-full backdrop-blur-md ${
-                          alignmentStatus === 'perfect' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-black/40 text-gray-300'
+                          alignmentStatus === 'perfect' ? 'bg-emerald-500/20 text-emerald-300' :
+                          alignmentStatus === 'eye_closed' ? 'bg-rose-600/30 text-rose-200' : 'bg-black/40 text-gray-300'
                         }`}>
-                          Lower Eyelid Zone
+                          {alignmentStatus === 'eye_closed' ? '⚠️ EYE CLOSED' : 'Lower Eyelid Zone'}
                         </span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Floating Capture Button — ALWAYS Visible Inside Viewport */}
+                {/* Floating Capture Button — Visible & Interactive */}
                 {cameraActive && (
                   <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-auto">
                     <button
@@ -407,12 +476,16 @@ export default function Screening() {
                       className={`relative rounded-full p-1 transition-all duration-300 active:scale-90 shadow-2xl cursor-pointer ${
                         alignmentStatus === 'perfect'
                           ? 'bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 shadow-[0_0_35px_rgba(52,211,153,0.8)] animate-pulse'
+                          : alignmentStatus === 'eye_closed'
+                          ? 'bg-rose-600 shadow-[0_0_25px_rgba(244,63,94,0.6)]'
                           : 'bg-white/30 hover:bg-white/40'
                       }`}
                       style={{ width: '76px', height: '76px' }}
                     >
                       <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                        <div className="w-13 h-13 rounded-full bg-rakta-600 hover:bg-rakta-500 transition-colors flex items-center justify-center">
+                        <div className={`w-13 h-13 rounded-full flex items-center justify-center transition-colors ${
+                          alignmentStatus === 'eye_closed' ? 'bg-rose-600' : 'bg-rakta-600 hover:bg-rakta-500'
+                        }`}>
                           <span className="text-white text-lg">📷</span>
                         </div>
                       </div>
@@ -446,7 +519,7 @@ export default function Screening() {
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/30 text-xs text-rose-200 font-semibold">
-                  Operator Instruction: {agentDecision.recommendedGuidance}
+                  Operator Instruction: {alignmentStatus === 'eye_closed' ? '⚠️ EYE CLOSED — Please open eye wide and pull down lower eyelid' : agentDecision.recommendedGuidance}
                 </div>
               </div>
             )}
