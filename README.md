@@ -1,212 +1,137 @@
-<p align="center">
+﻿<p align="center">
   <h1 align="center">🩸 RaktaScan</h1>
-  <h3 align="center">AI-Powered Non-Invasive Anemia Screening</h3>
+  <h3 align="center">Agentic OpenCV 5 Vision for Non-Invasive Anemia Risk Pre-Screening</h3>
   <p align="center">
-    <strong>Team Duo Tech</strong> · Omni_BioTech_2
+    <strong>OpenCV AI Competition 2026, powered by AWS</strong>
     <br />
-    <em>A camera-based screening/triage aid — not a diagnostic device</em>
+    <em>Team Duo Tech (Vetha Narayanan G · Akshaya I)</em>
+    <br />
+    <br />
+    <a href="#-opencv-ai-competition-2026-alignment">Competition Alignment</a> ·
+    <a href="#-agentic-vision-active-perception-loop">Agentic Vision Loop</a> ·
+    <a href="#-opencv-5-substantive-vision-engine">OpenCV 5 Engine</a> ·
+    <a href="#-aws-cloud-architecture">AWS Architecture</a> ·
+    <a href="#-quick-start">Quick Start</a>
   </p>
 </p>
 
 ---
 
-## 🩸 Problem Statement
+## 🏆 OpenCV AI Competition 2026 Alignment
 
-**Omni_BioTech_2 — Non-Invasive Anemia Screening**
-
-Anemia is a widespread health condition affecting millions globally. Conventional screening relies on blood-based testing methods such as Complete Blood Count (CBC) analysis, which require:
-
-- Specialized laboratory equipment
-- Trained medical personnel
-- Consumables (needles, reagents, collection tubes)
-- Reliable healthcare facility access
-
-These requirements make mass screening difficult in **rural and resource-constrained environments**, where anemia prevalence is often highest and healthcare infrastructure is limited. There is a clear need for accessible, non-invasive screening approaches that can function as a first-line triage tool in such settings.
-
----
-
-## 💡 Proposed Solution
-
-**RaktaScan** is a camera-based, AI-assisted screening platform that uses guided smartphone imaging of the **inner eyelid (palpebral conjunctiva)** to assess anemia risk.
-
-### Pipeline
+RaktaScan is specifically engineered for the **OpenCV AI Competition 2026, powered by AWS** under the **Agentic Vision & Healthcare Triage** track.
 
 ```
-Smartphone Camera
-        ↓
-Guided Capture
-        ↓
-Image Quality Gate
-        ↓
-Conjunctiva ROI Detection
-        ↓
-Preprocessing
-        ↓
-MobileNetV3
-        ↓
-Risk Assessment
-        ↓
-Explainable Result
-        ↓
-Confirmatory Test Recommendation
+                               PERCEIVE (OpenCV 5)
+                                       │
+                                       ▼
+                                 UNDERSTAND
+                                       │
+                                       ▼
+                                  AGENT DECIDE
+                                       │
+                ┌──────────────────────┴──────────────────────┐
+                ▼                                             ▼
+       ACTION / TOOL CALL                             VALIDATED EVIDENCE
+(Recapture / Second View Request)                             │
+                │                                             ▼
+                ▼                                    FINAL RISK SCREENING
+       RE-PERCEIVE (OpenCV 5)                                 │
+                │                                             ▼
+                └──────────────────────────────────► CONFIRMATORY GUIDANCE
 ```
 
-> **Important:**
-> RaktaScan is a **screening/triage aid**, NOT a diagnostic device.
-> Moderate/High-risk screening results recommend **confirmatory hemoglobin testing**.
+### Key Judging Proof
+> **VISUAL EVIDENCE CHANGES WHAT THE AGENT DOES NEXT**:
+> When OpenCV 5 detects poor image quality (blur, dark, specular glare), the agent issues an operator correction (`REQUEST_RECAPTURE`). When OpenCV 5 measures borderline Erythrocyte Pallor ($0.35 \le \text{EPI} \le 0.65$), the agent actively requests a second visual capture (`REQUEST_SECOND_VIEW`) for cross-validation before outputting a screening result.
 
 ---
 
-## ✨ Features & Phase 2 Implementation Status
+## ✨ System Capabilities
 
-| Feature | Description | Status |
-|---|---|---|
-| **React + Vite Frontend** | Responsive mobile-first healthcare UI | ✅ Implemented |
-| **AI-Guided Camera Capture** | Live camera view with eye positioning reticle | ✅ Implemented |
-| **Image Quality Gate** | Sharpness (Laplacian variance), exposure, contrast & size checks | ✅ Implemented |
-| **Automatic Conjunctiva ROI** | MediaPipe Face Landmarker lower-eyelid localization | ✅ Implemented |
-| **Image Preprocessing** | 224x224 RGB normalization & CHW Float32 tensor conversion | ✅ Implemented |
-| **Lightweight On-Device AI** | MobileNetV3 model in ONNX format (0.30 MB) | ✅ Implemented |
-| **On-Device Inference** | ONNX Runtime Web execution provider in browser | ✅ Implemented |
-| **Risk Assessment Output** | Low / Moderate / High Risk classification & recommendations | ✅ Implemented |
-| **Community Health Worker Mode** | Batch screening session manager & summary dashboard | ✅ Implemented |
-| **Screening History** | Local-first storage, record view & deletion | ✅ Implemented |
-| **Multilingual Interface** | English and Hindi translations (`i18next`) | ✅ Implemented |
-| **Privacy-Preserving Architecture** | On-device processing, no image uploads by default | ✅ Implemented |
-| **Clinical Dataset Fine-Tuning** | Model training & evaluation on clinical dataset | 🔄 In Progress |
+- **Substantive OpenCV 5 Vision Engine**: Laplacian variance sharpness, HSV/LAB luminance, specular glare masking, CIELAB $a^*$ redness index, Red/Green ratio, and Erythrocyte Pallor Index (EPI).
+- **Multi-Frame Temporal Aggregation**: 5–15 frame sequence processing with trimmed-median outlier rejection.
+- **Active Perception Decision Engine**: Real-time policy engine triggering `REQUEST_RECAPTURE`, `REQUEST_SECOND_VIEW`, `ACCEPT_LOW_RISK`, `ACCEPT_MODERATE_RISK`, `ACCEPT_HIGH_RISK`, or `REQUEST_HUMAN_REVIEW`.
+- **MCP Tool Suite**: 10 Model Context Protocol tools (`analyze_capture_quality()`, `extract_conjunctiva_roi()`, `run_cross_validation()`, etc.).
+- **Amazon Bedrock Integration**: AWS Bedrock agent orchestration, policy checking, and natural language explanation.
+- **Agentic Vision Lab Dashboard**: Live interactive competition demonstration environment (`/lab`) displaying Agent Execution Trace logs and interactive MCP tool testing.
+- **Live Eye Closed Detection**: Real-time video frame guidance warning users if their eye is closed or misaligned (**"⚠️ EYE CLOSED — Open eye wide"**).
+- **Patient Screening Database**: Local-first record persistence with search, risk filters, detail view modals, and print/export functionality.
 
 ---
 
-## 🏗️ System Architecture
+## 👁️ OpenCV 5 Substantive Vision Engine
 
-```
-User / Community Health Worker
-            ↓
-    Smartphone Camera
-            ↓
-      Guided Capture
-            ↓
-    Image Quality Gate
-            ↓
-  Conjunctiva ROI Detection
-            ↓
-    Image Preprocessing
-            ↓
-   MobileNetV3 (ONNX Web)
-            ↓
-    Risk Classification
-            ↓
-    Explainable Result
-            ↓
-Confirmatory Test Recommendation
+OpenCV 5 performs image quality and tissue color analysis:
+
+1. **Laplacian Variance Sharpness**:
+   $$\text{Var}(\Delta I) = \frac{1}{N} \sum (L(x,y) - \mu_L)^2$$
+2. **Specular Glare Masking**:
+   Identifies highlight reflections in CIELAB space ($L > 230$) and measures glare surface percentage.
+3. **CIELAB $a^*$ Redness Index**:
+   Measures green-to-red tissue chromaticity ($a^*$) to detect conjunctiva capillary pallor.
+4. **Erythrocyte Pallor Index (EPI)**:
+   $$\text{EPI} = 0.50 \cdot a^*_{\text{norm}} + 0.35 \cdot (R/G)_{\text{norm}} + 0.15 \cdot S_{\text{norm}}$$
+
+---
+
+## ☁️ AWS Cloud Architecture
+
+```mermaid
+flowchart TD
+    Client["React 18 + Vite 5 + TypeScript (PWA)"] --> OpenCV_FE["OpenCV 5 Vision Engine"]
+    OpenCV_FE --> AgentEngine["Agentic Decision Engine"]
+    AgentEngine --> APIGW["AWS API Gateway"]
+    APIGW --> FastAPI["FastAPI Backend (ECS / Lambda)"]
+    FastAPI --> Bedrock["Amazon Bedrock (Claude 3 Haiku)"]
+    FastAPI --> DynamoDB["Amazon DynamoDB (Anonymous Storage)"]
+    FastAPI --> CloudWatch["AWS CloudWatch (Agent Logs)"]
 ```
 
-### Supporting Components
-
-- **Community Health Worker Dashboard** — Batch screening management and session metrics.
-- **Secure Screening History** — Local-first screening record storage using `localStorage`.
-- **Optional FastAPI Backend** — Backend API layer located in `backend/`.
-
-> See [`docs/architecture.md`](docs/architecture.md) and [`docs/phase2-progress.md`](docs/phase2-progress.md) for detailed technical documentation.
+- **Amazon Bedrock**: Clinical AI orchestration & policy checks.
+- **AWS API Gateway & FastAPI**: Containerized backend API.
+- **Amazon DynamoDB & CloudWatch**: Anonymous session persistence and real-time agent trace logging.
+- **Privacy-First**: Raw facial images are processed 100% on-device by default. Cloud sync requires explicit user opt-in.
 
 ---
 
-## 🛠️ Technology Stack
+## 🚀 Quick Start
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | React 18, Vite 5, TypeScript, Tailwind CSS |
-| **Computer Vision** | MediaPipe Face Landmarker (468 3D Mesh) |
-| **Primary AI Model** | MobileNetV3-Small (PyTorch → ONNX) |
-| **On-Device Inference** | ONNX Runtime Web (WASM execution provider) |
-| **Internationalization** | i18next (English & Hindi) |
-| **Backend (Optional)** | FastAPI (Python) |
-| **Version Control** | Git & GitHub |
-
----
-
-## 🚀 Running the Project Locally
-
-### Prerequisites
-- Node.js (v18+)
-- npm (v9+)
-- Python (v3.10+)
-
-### Quick Start
-
-1. **Install Frontend Dependencies & Run Dev Server**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   Open `http://localhost:5173/` in your browser.
-
-2. **Generate / Re-export MobileNetV3 ONNX Model (Optional)**:
-   ```bash
-   pip install torch torchvision onnx
-   python model/scripts/export_onnx.py
-   ```
-
-3. **Run Quality Gate Test**:
-   ```bash
-   npx tsx tests/qualityGate.test.ts
-   ```
-
----
-
-## 🛡️ Responsible AI
-
-- **RaktaScan is NOT a diagnostic device** — it is a screening/triage aid.
-- Screening results **should not replace** clinical hemoglobin testing.
-- Moderate/High risk results **must recommend** confirmatory testing at certified healthcare facilities.
-- **No unsupported medical claims** are made by this project.
-- Image quality failures **trigger recapture** rather than unreliable predictions.
-- **Privacy-preserving processing** is prioritized (100% on-device browser execution).
-
----
-
-## 📁 Project Structure
-
+### 1. Run Frontend Application
+```powershell
+cd frontend
+npm install
+npm run dev
 ```
-RaktaScan/
-│
-├── README.md                  ← Project documentation & Phase 2 status
-├── LICENSE                    ← MIT License
-├── .gitignore
-│
-├── docs/
-│   ├── README.md              ← Documentation index
-│   ├── phase1-proposal.pdf    ← Phase 1 proposal document
-│   ├── phase2-progress.md    ← Phase 2 progress report
-│   ├── architecture.md        ← Technical architecture details
-│   └── screenshots/           ← Prototype screenshots
-│
-├── frontend/                  ← React + Vite + TypeScript application
-│   ├── src/
-│   │   ├── components/        ← UI modules & guides
-│   │   ├── pages/             ← Home, Screening, Result, History, CHW, Settings
-│   │   ├── utils/             ← Quality Gate, ROI Detection, Preprocessing, Inference
-│   │   └── i18n.ts            ← Multilingual config
-│   ├── public/models/         ← MobileNetV3 ONNX model
-│   └── vite.config.ts
-│
-├── backend/                   ← FastAPI backend API
-├── model/                     ← PyTorch training & ONNX export scripts
-├── data/                      ← Dataset specifications & splits
-└── tests/                     ← Unit & quality gate tests
+Open **`http://localhost:5173/`** in your browser.
+
+### 2. Run Agentic Vision Lab Dashboard
+Navigate to **`http://localhost:5173/lab`** or click **🧪 Agentic Vision Lab** in the app header.
+
+### 3. Run FastAPI Backend (Optional / AWS Mode)
+```powershell
+cd backend
+python -m uvicorn backend.app.main:app --reload --port 8000
+```
+
+### 4. Run Automated Test Suite
+```powershell
+# Run TypeScript OpenCV 5 & Agent Engine tests
+npx tsx tests/opencv_vision.test.ts
+npx tsx tests/agent_engine.test.ts
+
+# Run Python OpenCV & FastAPI tests
+python -m unittest backend.tests.test_opencv_pipeline
 ```
 
 ---
 
-## 👥 Team
-
-**Duo Tech**
+## 👥 Team Duo Tech
 
 | Name | Role |
 |---|---|
-| **Vetha Narayanan G** | Team Member |
-| **Akshaya I** | Team Member |
+| **Vetha Narayanan G** | Team Lead / Computer Vision & AI Engineer |
+| **Akshaya I** | Healthcare UX & System Engineer |
 
 ---
 

@@ -1,9 +1,10 @@
-import { Routes, Route } from 'react-router-dom'
+﻿import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import Screening from './pages/Screening'
 import Result from './pages/Result'
 import History from './pages/History'
 import CHWMode from './pages/CHWMode'
+import AgenticLab from './pages/AgenticLab'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/result" element={<Result />} />
         <Route path="/history" element={<History />} />
         <Route path="/chw" element={<CHWMode />} />
+        <Route path="/lab" element={<AgenticLab />} />
       </Routes>
     </div>
   )

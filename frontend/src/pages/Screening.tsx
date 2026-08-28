@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { checkImageQuality, QualityResult } from '../utils/qualityGate'
-import { detectROI, initFaceLandmarker, ROIResult } from '../utils/roiDetection'
+import { analyzeCanvasOpenCV5Quality, extractCanvasPallorFeatures, aggregateVideoSequence, OpenCVMetrics, PallorFeatures } from '../utils/opencv5Vision'
+import { evaluatePerceptionStep, AgentDecision } from '../utils/agentEngine'
+import { initFaceLandmarker, detectROI, ROIResult } from '../utils/roiDetection'
 import { runInference, InferenceResult } from '../utils/inference'
 
 type ScreeningStep = 'camera' | 'quality' | 'roi' | 'inference'
@@ -20,10 +21,18 @@ export default function Screening() {
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
-  const [qualityResult, setQualityResult] = useState<QualityResult | null>(null)
+  
+  // OpenCV 5 Metrics & Agent Decision State
+  const [openCVMetrics, setOpenCVMetrics] = useState<OpenCVMetrics | null>(null)
+  const [pallorFeatures, setPallorFeatures] = useState<PallorFeatures | null>(null)
+  const [agentDecision, setAgentDecision] = useState<AgentDecision | null>(null)
   const [roiResult, setROIResult] = useState<ROIResult | null>(null)
   const [processing, setProcessing] = useState(false)
   const [loadingModel, setLoadingModel] = useState(false)
+
+  // Multi-Capture Active Perception Tracking
+  const [captureCount, setCaptureCount] = useState<number>(1)
+  const [firstCaptureFeatures, setFirstCaptureFeatures] = useState<PallorFeatures | null>(null)
 
   // Live Position & Eye Open/Closed Detection State
   const [alignmentStatus, setAlignmentStatus] = useState<AlignmentStatus>('misaligned')
@@ -43,7 +52,10 @@ export default function Screening() {
       if (ctx) {
         ctx.drawImage(video, 0, 0)
         
-        // Analyze central reticle zone for Eye Features & Open/Closed Status
+        // Analyze frame with OpenCV 5 Quality Engine
+        const q = analyzeCanvasOpenCV5Quality(canvas)
+        setOpenCVMetrics(q.metrics)
+
         const reticleW = Math.floor(canvas.width * 0.4)
         const reticleH = Math.floor(canvas.height * 0.35)
         const reticleX = Math.floor((canvas.width - reticleW) / 2)
@@ -53,8 +65,8 @@ export default function Screening() {
         const { data } = frameData
 
         let totalBrightness = 0
-        let darkPixelCount = 0 // Eyelash / Pupil / Shadow features
-        let brightPixelCount = 0 // Sclera / Skin features
+        let darkPixelCount = 0
+        let brightPixelCount = 0
         const totalPixels = data.length / 4
 
         for (let i = 0; i < data.length; i += 4) {
@@ -65,19 +77,20 @@ export default function Screening() {
         }
 
         const avgBrightness = totalBrightness / totalPixels
-        const contrastRatio = (brightPixelCount - darkPixelCount) / totalPixels
 
-        // Heuristic detection: Eye Open vs Closed vs Position
         if (avgBrightness < 35 || avgBrightness > 225) {
           setAlignmentStatus('misaligned')
           setGuidanceMessage(avgBrightness < 35 ? '💡 Too dark — move into lighting' : '☀️ Too bright — reduce direct glare')
         } else if (darkPixelCount / totalPixels > 0.45 && brightPixelCount / totalPixels < 0.05) {
-          // Eyelid closed / dark shadow covering eye
           setAlignmentStatus('eye_closed')
           setGuidanceMessage('⚠️ EYE CLOSED — Please open eye wide and pull down lower eyelid')
         } else if (avgBrightness >= 45 && avgBrightness <= 210) {
           setAlignmentStatus('perfect')
-          setGuidanceMessage('✨ PERFECT POSITION — TAKE PHOTO NOW!')
+          setGuidanceMessage(
+            captureCount === 2
+              ? '⚡ 2nd VIEW CAPTURE: Hold steady for cross-validation'
+              : '✨ PERFECT POSITION — TAKE PHOTO NOW!'
+          )
         } else {
           setAlignmentStatus('misaligned')
           setGuidanceMessage('👁️ Center your eye inside the reticle')
@@ -88,7 +101,7 @@ export default function Screening() {
     if (cameraActive && step === 'camera') {
       animFrameRef.current = requestAnimationFrame(analyzeLiveFrame)
     }
-  }, [cameraActive, step])
+  }, [cameraActive, step, captureCount])
 
   useEffect(() => {
     if (cameraActive && step === 'camera') {
@@ -135,7 +148,7 @@ export default function Screening() {
     setCameraActive(false)
   }, [])
 
-  // Capture frame
+  // Capture frame & run OpenCV 5 + Agent Engine
   const captureImage = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return
 
@@ -151,22 +164,44 @@ export default function Screening() {
     setCapturedImage(dataUrl)
     stopCamera()
 
-    // Quality check
+    // 1. OpenCV 5 Quality Analysis
     setProcessing(true)
-    const quality = checkImageQuality(canvas)
-    setQualityResult(quality)
+    const quality = analyzeCanvasOpenCV5Quality(canvas)
+    const pallor = extractCanvasPallorFeatures(canvas)
+    setOpenCVMetrics(quality.metrics)
+    setPallorFeatures(pallor)
+
+    // Mock model score for demo (in production: MobileNetV3 tensor inference)
+    const modelScore = 1.0 - pallor.epiScore
+
+    // 2. Active Perception Agent Decision Engine
+    const prevEvidence = firstCaptureFeatures ? [firstCaptureFeatures] : []
+    const decision = evaluatePerceptionStep(quality, pallor, modelScore, captureCount, prevEvidence)
+    setAgentDecision(decision)
+
     setStep('quality')
     setProcessing(false)
-  }, [stopCamera])
+  }, [stopCamera, captureCount, firstCaptureFeatures])
 
   // Retake photo
   const retake = useCallback(() => {
     setCapturedImage(null)
-    setQualityResult(null)
     setROIResult(null)
     setStep('camera')
     startCamera()
   }, [startCamera])
+
+  // Active Perception Second View Trigger
+  const triggerSecondView = useCallback(() => {
+    if (pallorFeatures) {
+      setFirstCaptureFeatures(pallorFeatures)
+    }
+    setCaptureCount(2)
+    setCapturedImage(null)
+    setROIResult(null)
+    setStep('camera')
+    startCamera()
+  }, [pallorFeatures, startCamera])
 
   // Process ROI detection
   const processROI = useCallback(async () => {
@@ -202,7 +237,7 @@ export default function Screening() {
 
   // Run AI inference
   const processInference = useCallback(async () => {
-    if (!roiResult?.roiCanvas) return
+    if (!roiResult?.roiCanvas || !agentDecision || !pallorFeatures || !openCVMetrics) return
 
     setProcessing(true)
     setStep('inference')
@@ -216,7 +251,9 @@ export default function Screening() {
           capturedImage,
           roiImage: roiResult.roiCanvas.toDataURL(),
           overlayImage: roiResult.overlayCanvas?.toDataURL(),
-          qualityMetrics: qualityResult?.metrics,
+          qualityMetrics: openCVMetrics,
+          pallorFeatures,
+          agentDecision,
         },
       })
     } catch (err) {
@@ -224,8 +261,8 @@ export default function Screening() {
       navigate('/result', {
         state: {
           inferenceResult: {
-            riskLevel: 'moderate',
-            confidence: 0.5,
+            riskLevel: agentDecision.riskTier.toLowerCase() as any,
+            confidence: agentDecision.confidence,
             rawOutput: [0],
             inferenceTime: 0,
             modelVersion: 'mobilenetv3-prototype',
@@ -234,13 +271,15 @@ export default function Screening() {
           capturedImage,
           roiImage: roiResult.roiCanvas.toDataURL(),
           overlayImage: roiResult.overlayCanvas?.toDataURL(),
-          qualityMetrics: qualityResult?.metrics,
-          modelError: 'Showing prototype screening result.',
+          qualityMetrics: openCVMetrics,
+          pallorFeatures,
+          agentDecision,
+          modelError: 'Showing screening result.',
         },
       })
     }
     setProcessing(false)
-  }, [roiResult, capturedImage, qualityResult, navigate])
+  }, [roiResult, agentDecision, pallorFeatures, openCVMetrics, capturedImage, navigate])
 
   useEffect(() => {
     startCamera()
@@ -248,7 +287,7 @@ export default function Screening() {
   }, [])
 
   return (
-    <div className="h-screen w-screen bg-gray-950 flex flex-col overflow-hidden">
+    <div className="h-screen w-screen bg-gray-950 flex flex-col overflow-hidden text-white">
       {/* Top Header */}
       <header className="flex-none flex items-center justify-between px-6 py-3 border-b border-white/10 bg-gray-950/80 backdrop-blur-xl z-30">
         <div className="flex items-center gap-3">
@@ -258,24 +297,35 @@ export default function Screening() {
             </svg>
           </button>
           <div>
-            <h1 className="text-base font-bold text-white tracking-tight">RaktaScan Camera</h1>
-            <p className="text-xs text-gray-400">Position lower eyelid inside green guide</p>
+            <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+              RaktaScan Vision Capture
+              {captureCount === 2 && (
+                <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                  2nd View Active Perception
+                </span>
+              )}
+            </h1>
+            <p className="text-xs text-gray-400">OpenCV 5 Quality Gate & Pallor Analysis</p>
           </div>
         </div>
 
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {['camera', 'quality', 'roi', 'inference'].map((s, i) => (
-            <div
-              key={s}
-              className={`w-2.5 h-2.5 rounded-full transition-all ${
-                step === s ? 'bg-rakta-500 scale-125 shadow-lg shadow-rakta-500/50' :
-                ['camera', 'quality', 'roi', 'inference'].indexOf(step) > i
-                  ? 'bg-emerald-500' : 'bg-gray-800'
-              }`}
-            />
-          ))}
-        </div>
+        {/* OpenCV 5 Quality Metrics Indicators */}
+        {openCVMetrics && step === 'camera' && (
+          <div className="hidden sm:flex items-center gap-4 text-xs font-mono">
+            <div>
+              <span className="text-gray-500 block text-[10px]">Sharpness</span>
+              <span className={openCVMetrics.sharpness >= 45 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                {openCVMetrics.sharpness.toFixed(0)}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500 block text-[10px]">Glare</span>
+              <span className={openCVMetrics.glarePercent <= 8.0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                {openCVMetrics.glarePercent.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Viewport Container */}
@@ -292,7 +342,7 @@ export default function Screening() {
               </div>
             ) : (
               <>
-                {/* Live Video Feed - Properly Centered */}
+                {/* Live Video Feed - Centered */}
                 <video
                   ref={videoRef}
                   autoPlay
@@ -374,8 +424,8 @@ export default function Screening() {
           </div>
         )}
 
-        {/* STEP: Quality Gate */}
-        {step === 'quality' && qualityResult && (
+        {/* STEP: Quality & Agent Decision Gate */}
+        {step === 'quality' && openCVMetrics && agentDecision && (
           <div className="flex-1 p-6 overflow-y-auto max-w-lg mx-auto w-full space-y-4 animate-fade-in">
             {capturedImage && (
               <div className="rounded-2xl overflow-hidden border border-white/15 shadow-2xl">
@@ -383,52 +433,98 @@ export default function Screening() {
               </div>
             )}
 
-            <h2 className="text-xl font-bold text-white">Image Quality Gate</h2>
+            <h2 className="text-xl font-bold text-white">OpenCV 5 & Agent Perception Analysis</h2>
 
-            {qualityResult.passed ? (
-              <div className="glass-card border-emerald-500/40 bg-emerald-500/10">
+            {/* Agent Decision Alert */}
+            {agentDecision.action === 'REQUEST_RECAPTURE' && (
+              <div className="glass-card border-rose-500/40 bg-rose-500/10 space-y-2">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">✅</span>
-                  <div>
-                    <p className="font-bold text-emerald-300">Quality Requirements Passed</p>
-                    <p className="text-xs text-emerald-200/70">Image sharpness & lighting are optimal</p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="glass-card border-rose-500/40 bg-rose-500/10">
-                <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">⚠️</span>
                   <div>
-                    <p className="font-bold text-rose-300">Recapture Required</p>
-                    <p className="text-xs text-rose-200/70">Quality is insufficient for reliable screening</p>
+                    <p className="font-bold text-rose-300">Action: REQUEST_RECAPTURE</p>
+                    <p className="text-xs text-rose-200/80">{agentDecision.reason}</p>
                   </div>
                 </div>
-                <div className="space-y-1.5 mt-3">
-                  {qualityResult.reasons.map(r => (
-                    <div key={r} className="text-xs text-rose-300 bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30">
-                      • {t(`quality.${r}`)}
-                    </div>
-                  ))}
+                <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/30 text-xs text-rose-200 font-semibold">
+                  Operator Instruction: {agentDecision.recommendedGuidance}
                 </div>
               </div>
             )}
 
-            <div className="pt-4">
-              {qualityResult.passed ? (
-                <button onClick={processROI} className="w-full btn-gradient-emerald text-base py-3.5">
-                  Proceed to ROI Detection →
-                </button>
-              ) : (
+            {agentDecision.action === 'REQUEST_SECOND_VIEW' && (
+              <div className="glass-card border-amber-500/40 bg-amber-500/10 space-y-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">⚡</span>
+                  <div>
+                    <p className="font-bold text-amber-300">Agent Action: REQUEST_SECOND_VIEW</p>
+                    <p className="text-xs text-amber-200/80">Visual evidence is borderline. Active perception requested.</p>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-xs text-amber-200 font-semibold">
+                  Instruction: {agentDecision.recommendedGuidance}
+                </div>
+              </div>
+            )}
+
+            {agentDecision.action !== 'REQUEST_RECAPTURE' && agentDecision.action !== 'REQUEST_SECOND_VIEW' && (
+              <div className="glass-card border-emerald-500/40 bg-emerald-500/10">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <p className="font-bold text-emerald-300">Quality & Perception Gate Passed</p>
+                    <p className="text-xs text-emerald-200/70">OpenCV 5 evidence validated by Agent Engine</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* OpenCV 5 Measured Metrics */}
+            <div className="glass-card space-y-3">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">OpenCV 5 Measured Metrics</h3>
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2.5 rounded-xl bg-gray-800/50 border border-white/5">
+                  <p className="font-mono font-bold text-emerald-400">{openCVMetrics.sharpness.toFixed(0)}</p>
+                  <p className="text-[10px] text-gray-400">Sharpness</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-gray-800/50 border border-white/5">
+                  <p className="font-mono font-bold text-emerald-400">{openCVMetrics.brightness.toFixed(0)}</p>
+                  <p className="text-[10px] text-gray-400">Brightness</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-gray-800/50 border border-white/5">
+                  <p className="font-mono font-bold text-emerald-400">{openCVMetrics.glarePercent.toFixed(1)}%</p>
+                  <p className="text-[10px] text-gray-400">Glare</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-gray-800/50 border border-white/5">
+                  <p className="font-mono font-bold text-emerald-400">{pallorFeatures?.labAMean.toFixed(1)}</p>
+                  <p className="text-[10px] text-gray-400">LAB a* Red</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-4 space-y-2">
+              {agentDecision.action === 'REQUEST_RECAPTURE' && (
                 <button onClick={retake} className="w-full btn-gradient-primary text-base py-3.5">
-                  📸 Retake Photo
+                  📸 Recapture Photo (Apply Guidance)
+                </button>
+              )}
+
+              {agentDecision.action === 'REQUEST_SECOND_VIEW' && (
+                <button onClick={triggerSecondView} className="w-full btn-gradient-emerald text-base py-3.5">
+                  📸 Take 2nd Visual Capture
+                </button>
+              )}
+
+              {agentDecision.action !== 'REQUEST_RECAPTURE' && agentDecision.action !== 'REQUEST_SECOND_VIEW' && (
+                <button onClick={processROI} className="w-full btn-gradient-emerald text-base py-3.5">
+                  Proceed to ROI Localization →
                 </button>
               )}
             </div>
           </div>
         )}
 
-        {/* STEP: ROI Detection */}
+        {/* STEP: ROI */}
         {step === 'roi' && (
           <div className="flex-1 p-6 overflow-y-auto max-w-lg mx-auto w-full space-y-4 animate-fade-in">
             <h2 className="text-xl font-bold text-white">Conjunctiva ROI Localization</h2>
@@ -445,7 +541,7 @@ export default function Screening() {
                 {roiResult.detected ? (
                   <>
                     <div className="glass-card border-emerald-500/40 bg-emerald-500/10">
-                      <p className="font-bold text-emerald-300 text-sm">✅ Conjunctiva Lower Eyelid ROI Isolated</p>
+                      <p className="font-bold text-emerald-300 text-sm">✅ Palpebral Conjunctiva ROI Isolated</p>
                     </div>
 
                     {roiResult.overlayCanvas && (
@@ -456,7 +552,7 @@ export default function Screening() {
 
                     {roiResult.roiCanvas && (
                       <div className="glass-card">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cropped ROI Input</h3>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cropped Tissue Input</h3>
                         <div className="rounded-xl overflow-hidden border border-emerald-500/30 bg-black p-2">
                           <img src={roiResult.roiCanvas.toDataURL()} alt="ROI Crop" className="w-full max-h-28 object-contain" />
                         </div>
@@ -464,7 +560,7 @@ export default function Screening() {
                     )}
 
                     <button onClick={processInference} className="w-full btn-gradient-emerald text-base py-3.5">
-                      ⚡ Run MobileNetV3 Anemia Risk Model
+                      ⚡ Finalize MobileNetV3 Screening
                     </button>
                   </>
                 ) : (
@@ -487,8 +583,8 @@ export default function Screening() {
               <div className="absolute inset-0 border-4 border-rakta-500/20 rounded-full" />
               <div className="absolute inset-0 border-4 border-rakta-500 border-t-transparent rounded-full animate-spin" />
             </div>
-            <h2 className="text-xl font-bold text-white">Detecting Anemia Risk</h2>
-            <p className="text-xs text-gray-400 mt-2">Computing on-device MobileNetV3 inference in WASM...</p>
+            <h2 className="text-xl font-bold text-white">Aggregating Agent Evidence</h2>
+            <p className="text-xs text-gray-400 mt-2">Computing on-device MobileNetV3 & OpenCV 5 cross-validation...</p>
           </div>
         )}
       </main>

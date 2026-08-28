@@ -1,7 +1,9 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+﻿import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { InferenceResult } from '../utils/inference'
 import { savePatientRecord } from '../utils/history'
+import { OpenCVMetrics, PallorFeatures } from '../utils/opencv5Vision'
+import { AgentDecision } from '../utils/agentEngine'
 import { useState } from 'react'
 
 interface ResultState {
@@ -9,7 +11,9 @@ interface ResultState {
   capturedImage?: string
   roiImage?: string
   overlayImage?: string
-  qualityMetrics?: { sharpness: number; brightness: number; contrast: number }
+  qualityMetrics?: OpenCVMetrics
+  pallorFeatures?: PallorFeatures
+  agentDecision?: AgentDecision
   modelError?: string
 }
 
@@ -58,9 +62,9 @@ export default function Result() {
     )
   }
 
-  const { inferenceResult, roiImage, overlayImage, qualityMetrics } = state
+  const { inferenceResult, roiImage, overlayImage, qualityMetrics, pallorFeatures, agentDecision } = state
   const { riskLevel, confidence, inferenceTime, modelVersion, isPrototype } = inferenceResult
-  const colors = riskColors[riskLevel]
+  const colors = riskColors[riskLevel] || riskColors.moderate
 
   const handleSave = () => {
     savePatientRecord({
@@ -75,14 +79,18 @@ export default function Result() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-gray-950 flex flex-col relative overflow-hidden text-white">
+      {/* Header */}
       <header className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gray-950/60 backdrop-blur-xl">
         <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h1 className="text-base font-bold text-white">Screening Result Report</h1>
+        <div>
+          <h1 className="text-base font-bold text-white">Screening Result & Agent Trace</h1>
+          <p className="text-xs text-gray-400">OpenCV 5 & Agentic Vision Pre-Screening</p>
+        </div>
       </header>
 
       <main className="flex-1 p-6 max-w-lg mx-auto w-full space-y-4 animate-fade-in">
@@ -97,47 +105,60 @@ export default function Result() {
         {/* Main Risk Output Card */}
         <div className={`glass-card ${colors.border} ${colors.bg} text-center py-8 relative overflow-hidden`}>
           <div className="text-5xl mb-3">{colors.icon}</div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('result.riskLevel')}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">SCREENING RISK TIER</p>
           <h2 className={`text-3xl font-extrabold ${colors.text}`}>
-            {t(`result.${riskLevel}`)}
+            {riskLevel.toUpperCase()} SCREENING RISK
           </h2>
+          <span className="inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold bg-white/10 border border-white/15">
+            Screening Only — Not A Diagnosis
+          </span>
         </div>
 
-        {/* Confidence & Estimated Hb */}
-        <div className="glass-card space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Model Confidence</span>
-            <span className="text-sm font-mono font-bold text-emerald-400">{(confidence * 100).toFixed(1)}%</span>
+        {/* OpenCV 5 Visual Features Explainability */}
+        {pallorFeatures && (
+          <div className="glass-card space-y-3">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">OpenCV 5 Visual Features</h3>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="p-2.5 rounded-xl bg-gray-800/50 border border-white/5">
+                <p className="font-mono font-bold text-emerald-400">{pallorFeatures.labAMean.toFixed(1)}</p>
+                <p className="text-[10px] text-gray-400">CIELAB a* Redness</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-gray-800/50 border border-white/5">
+                <p className="font-mono font-bold text-emerald-400">{pallorFeatures.rgRatio.toFixed(2)}</p>
+                <p className="text-[10px] text-gray-400">R/G Ratio</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-gray-800/50 border border-white/5">
+                <p className="font-mono font-bold text-emerald-400">{pallorFeatures.epiScore.toFixed(2)}</p>
+                <p className="text-[10px] text-gray-400">Pallor Index (EPI)</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-300 bg-white/5 p-2.5 rounded-xl border border-white/5">
+              🔬 {pallorFeatures.evidence}
+            </p>
           </div>
+        )}
 
-          <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-1000 ${
-                riskLevel === 'low' ? 'bg-emerald-400' :
-                riskLevel === 'moderate' ? 'bg-amber-400' : 'bg-rose-500'
-              }`}
-              style={{ width: `${(confidence * 100).toFixed(0)}%` }}
-            />
+        {/* Agent Trace */}
+        {agentDecision && agentDecision.agentTrace && (
+          <div className="glass-card space-y-2">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Agent Decision Trace</h3>
+            <div className="bg-black/80 rounded-xl p-3 font-mono text-[11px] text-emerald-400 space-y-1.5 border border-white/10 max-h-44 overflow-y-auto">
+              {agentDecision.agentTrace.map((line, idx) => (
+                <div key={idx}>{line}</div>
+              ))}
+            </div>
           </div>
+        )}
 
-          {inferenceTime > 0 && (
-            <p className="text-[11px] text-gray-500">Inference Latency: {inferenceTime.toFixed(0)}ms · {modelVersion}</p>
-          )}
-        </div>
-
-        {/* What This Means & Next Steps */}
-        <div className="glass-card">
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Clinical Interpretation</h3>
-          <p className="text-xs text-gray-300 leading-relaxed mb-3">
-            {t(`result.${riskLevel}Desc`)}
+        {/* Clinical Interpretation & Next Steps */}
+        <div className="glass-card space-y-2">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Confirmatory Test Guidance</h3>
+          <p className="text-xs text-gray-300 leading-relaxed">
+            {agentDecision?.recommendedGuidance || t(`result.${riskLevel}Rec`)}
           </p>
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-xs font-semibold text-white mb-1">Recommended Action:</p>
-            <p className="text-xs text-gray-300">{t(`result.${riskLevel}Rec`)}</p>
-          </div>
         </div>
 
-        {/* ROI Overlay Visualization */}
+        {/* Isolated ROI */}
         {overlayImage && (
           <div className="glass-card">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Isolated Conjunctiva ROI</h3>
@@ -150,7 +171,7 @@ export default function Result() {
         {/* Safety Disclaimer */}
         <div className="glass-card bg-amber-500/5 border-amber-500/20 p-4">
           <p className="text-xs text-amber-200/80 leading-relaxed">
-            {t('result.disclaimer')}
+            RaktaScan is an anemia screening and triage aid, NOT a medical diagnostic device. Screening results should not replace clinical hemoglobin testing.
           </p>
         </div>
 

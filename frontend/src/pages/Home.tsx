@@ -1,12 +1,14 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import DemoModal from '../components/DemoModal'
+import { getRuntimeConfig } from '../utils/awsConfig'
 
 export default function Home() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const [isDemoOpen, setIsDemoOpen] = useState(false)
+  const runtime = getRuntimeConfig()
 
   const toggleLanguage = () => {
     const nextLang = i18n.language === 'en' ? 'hi' : 'en'
@@ -32,19 +34,29 @@ export default function Home() {
             <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
               RaktaScan
               <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-rakta-500/20 text-rakta-300 border border-rakta-500/30">
-                AI Detection
+                OpenCV 5 + AWS
               </span>
             </h1>
           </div>
         </div>
 
-        {/* Language Toggle */}
-        <button
-          onClick={toggleLanguage}
-          className="floating-badge hover:border-white/30 text-xs font-bold text-gray-300 cursor-pointer transition-all active:scale-95"
-        >
-          🌐 {i18n.language === 'en' ? 'English' : 'हिंदी'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Competition Agentic Vision Lab Shortcut */}
+          <button
+            onClick={() => navigate('/lab')}
+            className="floating-badge text-xs font-bold bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 cursor-pointer"
+          >
+            🧪 Agentic Vision Lab
+          </button>
+
+          {/* Language Toggle */}
+          <button
+            onClick={toggleLanguage}
+            className="floating-badge hover:border-white/30 text-xs font-bold text-gray-300 cursor-pointer transition-all active:scale-95"
+          >
+            🌐 {i18n.language === 'en' ? 'English' : 'हिंदी'}
+          </button>
+        </div>
       </header>
 
       {/* Main Hero Container */}
@@ -63,15 +75,15 @@ export default function Home() {
           </div>
 
           <span className="floating-badge text-rakta-300 bg-rakta-500/15 border-rakta-500/30 mb-3">
-            🩸 Non-Invasive Anemia Screening
+            🩸 OpenCV 5 & AWS Agentic Vision Pre-Screening
           </span>
 
           <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">
-            AI Anemia Screening
+            AI Anemia Pre-Screening
           </h2>
 
           <p className="text-sm text-gray-300 leading-relaxed max-w-md mx-auto mb-6">
-            Instant camera-based screening of the inner lower eyelid for early non-invasive anemia risk detection.
+            Agentic vision system using OpenCV 5 quality gate, conjunctiva pallor feature analysis, and active perception decision loops.
           </p>
 
           {/* Start Screening Primary CTA */}
@@ -106,6 +118,23 @@ export default function Home() {
           </button>
         </div>
 
+        {/* Competition Agentic Lab Shortcut Card */}
+        <button
+          onClick={() => navigate('/lab')}
+          className="w-full glass-card-interactive p-4 flex items-center justify-between border-emerald-500/30 bg-emerald-500/5"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 text-xl">
+              🧪
+            </div>
+            <div className="text-left">
+              <h3 className="font-bold text-emerald-300 text-sm">OpenCV 5 Agentic Vision Lab</h3>
+              <p className="text-xs text-gray-400">Live Agent Trace, MCP Tools & AWS Bedrock Orchestrator</p>
+            </div>
+          </div>
+          <span className="text-emerald-400 text-lg">→</span>
+        </button>
+
         {/* Patient Database Shortcut */}
         <button
           id="btn-history"
@@ -128,7 +157,7 @@ export default function Home() {
         <div className="glass-card bg-amber-500/5 border-amber-500/20 p-4">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 1 1.71 3h16.94a2 2 0 0 1 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
